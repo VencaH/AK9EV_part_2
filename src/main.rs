@@ -1,4 +1,6 @@
 use std::error;
+use decorum::cmp::CanonicalOrd;
+
 
 use heuristics::{
     benchmarks::traits::{HasBuilder, Benchmark, BuilderError},
@@ -57,7 +59,7 @@ where T: ProblemDomain + HasBuilder<T> + std::default::Default + Benchmark
         .build()
 }
 
-fn get_row<T>(parameters: &BenchmarkParameters, problem: &T) -> Vec<f32> 
+fn get_row<T>(parameters: &BenchmarkParameters, problem: &T) -> Vec<(f32,f32)> 
 where T: Benchmark + ProblemDomain<Item = f32> + HasBuilder<T> + std::default::Default
 { 
     let mut result = Vec::new();
@@ -115,27 +117,88 @@ where T: Benchmark + ProblemDomain<Item = f32> + HasBuilder<T> + std::default::D
                 ((acc * i as f32) / (i as f32 + 1f32)) + value / (i as f32 + 1f32)
             }),
     );
-    result
+    let mut sorted = result.clone();
+    sorted.sort_by(| a, b| a.cmp_canonical(b));
+    result.iter().map(|item| {
+        let naive_position = sorted.iter().position(|x| x == item).unwrap_or(99usize);
+        let rank  = &sorted.get(naive_position+1usize).and_then(|next| if &sorted[naive_position] == next {Some((naive_position as f32 + 3f32) / 2f32)} else {None}).unwrap_or(naive_position as f32 + 1f32);
+        (*item,*rank)
+    }).collect::<Vec<(f32,f32)>>()
 }
 
-fn get_stats(dim: usize) -> Result<Vec<Vec<f32>>, Box<dyn std::error::Error>> 
+fn get_stats(dim: usize) -> Result<Vec<Vec<(f32,f32)>>, Box<dyn std::error::Error>> 
 {
    let parameters = BenchmarkParameters::new(2);
 
-    let ackley = build_problem::<ackley::Ackley>(20)?; 
-    let alpine2 = alpine2::Alpine2::builder().minimum(0f32).maximum(100f32).dimensions(20).build()? ; 
-    let deb1 = build_problem::<deb1::Deb1>(20)?; 
-    let foth_dejong = build_problem::<foth_dejong::FothDejong>(20)?; 
+    let ackley = build_problem::<ackley::Ackley>(2)?; 
+    let alpine2 = alpine2::Alpine2::builder().minimum(0f32).maximum(100f32).dimensions(2).build()? ; 
+    let deb1 = build_problem::<deb1::Deb1>(2)?; 
+    let foth_dejong = build_problem::<foth_dejong::FothDejong>(2)?; 
+    let griewank = build_problem::<griewank::Griewank>(2)?; 
+    let michalewicz = build_problem::<michalewicz::Michalewicz>(2)?; 
+    let periodic = build_problem::<periodic::Periodic>(2)?; 
+    let qinq = build_problem::<qing::Qing>(2)?; 
+    let quintic = build_problem::<quintic::Quintic>(2)?; 
+    let rastrigin = build_problem::<rastrigin::Rastrigin>(2)?; 
+    let salomon = build_problem::<salomon::Salomon>(2)?; 
+    let schwefel = build_problem::<schwefel::Schwefel>(2)?; 
+    let styblinsky = build_problem::<styblinsky_and_tang::StyblinskyAndTang>(2)?; 
+    let trd_dejong = build_problem::<trd_dejong::TrdDejong>(2)?; 
+    let xinsheyang = build_problem::<xinsheyang::XinSheYang>(2)?; 
+
     let mut result =Vec::new();
+    println!("Calculating Ackley");
     result.push(get_row(&parameters, &ackley));
+    println!("Calculating Alpine2");
     result.push(get_row(&parameters, &alpine2));
+    println!("Calculating Deb1");
     result.push(get_row(&parameters, &deb1));
+    println!("Calculating Forth DeJong");
     result.push(get_row(&parameters, &foth_dejong));
+    println!("Calculating Griewank");
+    result.push(get_row(&parameters, &griewank));
+    println!("Calculating Michalewicz");
+    result.push(get_row(&parameters, &michalewicz));
+    println!("Calculating Periodic");
+    result.push(get_row(&parameters, &periodic));
+    println!("Calculating Qinq");
+    result.push(get_row(&parameters, &qinq));
+    println!("Calculating Quintic");
+    result.push(get_row(&parameters, &quintic));
+    println!("Calculating Rastrigin");
+    result.push(get_row(&parameters, &rastrigin));
+    println!("Calculating Salomon");
+    result.push(get_row(&parameters, &salomon));
+    println!("Calculating Schwefel");
+    result.push(get_row(&parameters, &schwefel));
+    println!("Calculating Styblinsky");
+    result.push(get_row(&parameters, &styblinsky));
+    println!("Calculating Trd_dejong");
+    result.push(get_row(&parameters, &trd_dejong));
+    println!("Calculating XinSheYang");
+    result.push(get_row(&parameters, &xinsheyang));
+
     Ok(result)
 }
 
+fn friedman(input: &Vec<Vec<(f32,f32)>>) -> f32 {
+    let n = 15f32;
+    let k = 3f32;
+    let sums =input.into_iter().fold( [0f32,0f32,0f32], |mut acc, row| {
+       acc[0] = acc[0] +  row[0].1 ;
+       acc[1] = acc[1] +  row[1].1 ;
+       acc[2] = acc[2] +  row[2].1 ;
+       acc
+    });
+    println!("{sums:?}");
+    let chi = (12f32/ (n * k * (k + 1f32))) * (sums.into_iter().fold(0f32, |acc, item| {acc + (item.powf(2f32) as f32)} )) - (3f32 * n * (k + 1f32));
+    chi
+}
+
+
 fn main() -> Result<(), Box<dyn error::Error>> {
     let result = get_stats(2)?;
-    println!("Results: {:?}", result);
+    result.iter().for_each(|row| println!("{row:?}"));
+    println!("chi: {}",friedman(&result));
     Ok(())
 }

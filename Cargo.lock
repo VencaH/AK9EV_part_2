@@ -233,10 +233,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "either"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
+
+[[package]]
 name = "evol_heuristics"
 version = "0.1.0"
 dependencies = [
+ "decorum",
  "heuristics",
+ "itertools",
 ]
 
 [[package]]
@@ -357,7 +365,7 @@ dependencies = [
 [[package]]
 name = "heuristics"
 version = "0.1.1"
-source = "git+https://github.com/VencaH/heuristics.git?branch=task_2#b5da17a2b7fac82184c522f22705739e1b1b2cec"
+source = "git+https://github.com/VencaH/heuristics.git?branch=task_2#46cc241162ce0ebfedebfd1ac14d82f4a4114fb6"
 dependencies = [
  "approx",
  "decorum",
@@ -402,6 +410,15 @@ dependencies = [
  "jpeg-decoder",
  "num-traits",
  "png",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
 ]
 
 [[package]]
