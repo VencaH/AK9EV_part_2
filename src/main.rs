@@ -1,4 +1,5 @@
 use std::error;
+use std::env;
 use decorum::cmp::CanonicalOrd;
 
 
@@ -128,77 +129,78 @@ where T: Benchmark + ProblemDomain<Item = f32> + HasBuilder<T> + std::default::D
 
 fn get_stats(dim: usize) -> Result<Vec<Vec<(f32,f32)>>, Box<dyn std::error::Error>> 
 {
-   let parameters = BenchmarkParameters::new(2);
+   let parameters = BenchmarkParameters::new(dim);
 
-    let ackley = build_problem::<ackley::Ackley>(2)?; 
+    let ackley = build_problem::<ackley::Ackley>(parameters.dim)?; 
     let alpine2 = alpine2::Alpine2::builder().minimum(0f32).maximum(100f32).dimensions(2).build()? ; 
-    let deb1 = build_problem::<deb1::Deb1>(2)?; 
-    let foth_dejong = build_problem::<foth_dejong::FothDejong>(2)?; 
-    let griewank = build_problem::<griewank::Griewank>(2)?; 
-    let michalewicz = build_problem::<michalewicz::Michalewicz>(2)?; 
-    let periodic = build_problem::<periodic::Periodic>(2)?; 
-    let qinq = build_problem::<qing::Qing>(2)?; 
-    let quintic = build_problem::<quintic::Quintic>(2)?; 
-    let rastrigin = build_problem::<rastrigin::Rastrigin>(2)?; 
-    let salomon = build_problem::<salomon::Salomon>(2)?; 
-    let schwefel = build_problem::<schwefel::Schwefel>(2)?; 
-    let styblinsky = build_problem::<styblinsky_and_tang::StyblinskyAndTang>(2)?; 
-    let trd_dejong = build_problem::<trd_dejong::TrdDejong>(2)?; 
-    let xinsheyang = build_problem::<xinsheyang::XinSheYang>(2)?; 
+    let deb1 = build_problem::<deb1::Deb1>(parameters.dim)?; 
+    let foth_dejong = build_problem::<foth_dejong::FothDejong>(parameters.dim)?; 
+    let griewank = build_problem::<griewank::Griewank>(parameters.dim)?; 
+    let michalewicz = build_problem::<michalewicz::Michalewicz>(parameters.dim)?; 
+    let periodic = build_problem::<periodic::Periodic>(parameters.dim)?; 
+    let qinq = build_problem::<qing::Qing>(parameters.dim)?; 
+    let quintic = build_problem::<quintic::Quintic>(parameters.dim)?; 
+    let rastrigin = build_problem::<rastrigin::Rastrigin>(parameters.dim)?; 
+    let salomon = build_problem::<salomon::Salomon>(parameters.dim)?; 
+    let schwefel = build_problem::<schwefel::Schwefel>(parameters.dim)?; 
+    let styblinsky = build_problem::<styblinsky_and_tang::StyblinskyAndTang>(parameters.dim)?; 
+    let trd_dejong = build_problem::<trd_dejong::TrdDejong>(parameters.dim)?; 
+    let xinsheyang = build_problem::<xinsheyang::XinSheYang>(parameters.dim)?; 
 
     let mut result =Vec::new();
-    println!("Calculating Ackley");
+    //println!("Calculating Ackley");
     result.push(get_row(&parameters, &ackley));
-    println!("Calculating Alpine2");
+    //println!("Calculating Alpine2");
     result.push(get_row(&parameters, &alpine2));
-    println!("Calculating Deb1");
+    //println!("Calculating Deb1");
     result.push(get_row(&parameters, &deb1));
-    println!("Calculating Forth DeJong");
+    //println!("Calculating Forth DeJong");
     result.push(get_row(&parameters, &foth_dejong));
-    println!("Calculating Griewank");
+    //println!("Calculating Griewank");
     result.push(get_row(&parameters, &griewank));
-    println!("Calculating Michalewicz");
+    //println!("Calculating Michalewicz");
     result.push(get_row(&parameters, &michalewicz));
-    println!("Calculating Periodic");
+    //println!("Calculating Periodic");
     result.push(get_row(&parameters, &periodic));
-    println!("Calculating Qinq");
+    //println!("Calculating Qinq");
     result.push(get_row(&parameters, &qinq));
-    println!("Calculating Quintic");
+    //println!("Calculating Quintic");
     result.push(get_row(&parameters, &quintic));
-    println!("Calculating Rastrigin");
+    //println!("Calculating Rastrigin");
     result.push(get_row(&parameters, &rastrigin));
-    println!("Calculating Salomon");
+    //println!("Calculating Salomon");
     result.push(get_row(&parameters, &salomon));
-    println!("Calculating Schwefel");
+    //println!("Calculating Schwefel");
     result.push(get_row(&parameters, &schwefel));
-    println!("Calculating Styblinsky");
+    //println!("Calculating Styblinsky");
     result.push(get_row(&parameters, &styblinsky));
-    println!("Calculating Trd_dejong");
+    //println!("Calculating Trd_dejong");
     result.push(get_row(&parameters, &trd_dejong));
-    println!("Calculating XinSheYang");
+    //println!("Calculating XinSheYang");
     result.push(get_row(&parameters, &xinsheyang));
 
     Ok(result)
 }
 
-fn friedman(input: &Vec<Vec<(f32,f32)>>) -> f32 {
+fn friedman(input: &Vec<Vec<(f32,f32)>>) -> (f32, bool) {
     let n = 15f32;
     let k = 3f32;
+    let chi_critical = 23.685f32;
     let sums =input.into_iter().fold( [0f32,0f32,0f32], |mut acc, row| {
        acc[0] = acc[0] +  row[0].1 ;
        acc[1] = acc[1] +  row[1].1 ;
        acc[2] = acc[2] +  row[2].1 ;
        acc
     });
-    println!("{sums:?}");
     let chi = (12f32/ (n * k * (k + 1f32))) * (sums.into_iter().fold(0f32, |acc, item| {acc + (item.powf(2f32) as f32)} )) - (3f32 * n * (k + 1f32));
-    chi
+    (chi, chi > chi_critical)
 }
 
 
 fn main() -> Result<(), Box<dyn error::Error>> {
-    let result = get_stats(2)?;
-    result.iter().for_each(|row| println!("{row:?}"));
-    println!("chi: {}",friedman(&result));
+    let dim = env::args().collect::<Vec<String>>()[1].parse::<usize>().expect("Error: incorect number of dimensions");
+    let result = get_stats(dim)?;
+    //result.iter().for_each(|row| println!("{row:?}"));
+    print!("{:?}",friedman(&result));
     Ok(())
 }
