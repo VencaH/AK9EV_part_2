@@ -115,7 +115,7 @@ where T: Benchmark + ProblemDomain<Item = f32> + HasBuilder<T> + std::default::D
             })
             .enumerate()
             .fold(0f32, |acc, (i, value)| {
-                ((acc * i as f32) / (i as f32 + 1f32)) + value / (i as f32 + 1f32)
+                ((acc * i as f32) / (i + 1usize) as f32 ) + value / (i + 1usize) as f32
             }),
     );
     let mut sorted = result.clone();
@@ -185,14 +185,15 @@ fn get_stats(dim: usize) -> Result<Vec<Vec<(f32,f32)>>, Box<dyn std::error::Erro
 fn friedman(input: &Vec<Vec<(f32,f32)>>) -> (f32, bool) {
     let n = 15f32;
     let k = 3f32;
-    let chi_critical = 23.685f32;
+    let chi_critical = 5.991;
     let sums =input.into_iter().fold( [0f32,0f32,0f32], |mut acc, row| {
-       acc[0] = acc[0] +  row[0].1 ;
-       acc[1] = acc[1] +  row[1].1 ;
-       acc[2] = acc[2] +  row[2].1 ;
+       acc[0] = acc[0] + row[0].1;
+       acc[1] = acc[1] + row[1].1;
+       acc[2] = acc[2] + row[2].1;
        acc
     });
-    let chi = (12f32/ (n * k * (k + 1f32))) * (sums.into_iter().fold(0f32, |acc, item| {acc + (item.powf(2f32) as f32)} )) - (3f32 * n * (k + 1f32));
+    //println!("sums: {:?}", sums);
+    let chi = (12f32/ (n * k * (k + 1f32))) * sums.into_iter().fold(0f32, |acc, ranks| acc + ranks.powf(2f32)) - (3f32 * n * (k + 1f32));
     (chi, chi > chi_critical)
 }
 
@@ -200,7 +201,7 @@ fn friedman(input: &Vec<Vec<(f32,f32)>>) -> (f32, bool) {
 fn main() -> Result<(), Box<dyn error::Error>> {
     let dim = env::args().collect::<Vec<String>>()[1].parse::<usize>().expect("Error: incorect number of dimensions");
     let result = get_stats(dim)?;
-    //result.iter().for_each(|row| println!("{row:?}"));
+    result.iter().for_each(|row| println!("{row:?}"));
     print!("{:?}",friedman(&result));
     Ok(())
 }
